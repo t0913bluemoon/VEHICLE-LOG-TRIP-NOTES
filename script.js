@@ -1,13 +1,17 @@
 const V_KEY = 'toritetsu:vehicle-logs';
 const S_KEY = 'toritetsu:visit-records';
 const T_KEY = 'toritetsu:trip-notes';
+const R_KEY = 'toritetsu:routes';
 
 let vehicleLogs = [];
 let visitRecords = [];
 let tripNotes = [];
+let routes = [];
+let draftLegs = [];
 let editingVehicleId = null;
 let editingVisitId = null;
 let editingTripId = null;
+let editingRouteId = null;
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -109,9 +113,14 @@ async function loadAll(){
     const s = await loadKey(S_KEY);
     visitRecords = s ? JSON.parse(s) : [];
   }catch(e){ visitRecords = []; }
+  try{
+    const r = await loadKey(R_KEY);
+    routes = r ? JSON.parse(r) : [];
+  }catch(e){ routes = []; }
   renderVehicles();
   renderVisits();
   renderTrips();
+  renderRoutes();
 }
 
 async function saveVehicles(){
@@ -122,6 +131,9 @@ async function saveTrips(){
 }
 async function saveVisits(){
   await saveKey(S_KEY, JSON.stringify(visitRecords));
+}
+async function saveRoutes(){
+  await saveKey(R_KEY, JSON.stringify(routes));
 }
 
 function toggleMenu(){
@@ -149,7 +161,7 @@ async function exportBackup(){
     const payload = {
       app: 'toritetsu',
       exportedAt: new Date().toISOString(),
-      vehicleLogs, visitRecords, tripNotes
+      vehicleLogs, visitRecords, tripNotes, routes
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -162,7 +174,7 @@ async function exportBackup(){
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    const total = vehicleLogs.length + visitRecords.length + tripNotes.length;
+    const total = vehicleLogs.length + visitRecords.length + tripNotes.length + routes.length;
     setBackupStatus(`書き出しました（全${total}件）`, false);
   }catch(e){
     console.error('バックアップの書き出しに失敗しました', e);
@@ -182,7 +194,8 @@ function importBackup(event){
       const v = Array.isArray(data.vehicleLogs) ? data.vehicleLogs : [];
       const s = Array.isArray(data.visitRecords) ? data.visitRecords : [];
       const t = Array.isArray(data.tripNotes) ? data.tripNotes : [];
-      const total = v.length + s.length + t.length;
+      const r = Array.isArray(data.routes) ? data.routes : [];
+      const total = v.length + s.length + t.length + r.length;
 
       const ok = confirm(`このファイルには記録が${total}件あります。\n今の記録は上書きされます。読み込みますか？`);
       if(!ok) return;
@@ -190,12 +203,15 @@ function importBackup(event){
       vehicleLogs = v;
       visitRecords = s;
       tripNotes = t;
+      routes = r;
       await saveVehicles();
       await saveVisits();
       await saveTrips();
+      await saveRoutes();
       renderVehicles();
       renderVisits();
       renderTrips();
+      renderRoutes();
       setBackupStatus(`読み込みました（全${total}件）`, false);
     }catch(err){
       console.error('バックアップの読み込みに失敗しました', err);
@@ -522,6 +538,115 @@ function renderTrips(){
         <button class="del-btn" style="position:static;" onclick="deleteTrip('${t.id}')">削除</button>
       </div>
       ${t.memo ? `<div class="trip-memo">${escapeHtml(t.memo)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ---- ルート（旅程メモの一部） ----
+function inputVal(id){ return document.getElementById(id).value.trim(); }
+
+function fmtLeg(l){
+  return `${l.dep || '--:--'} ${l.from} → ${l.arr || '--:--'} ${l.to}` +
+    (l.line ? ` [${l.line}]` : '') + (l.note ? ` ${l.note}` : '');
+}
+
+function addDraftLeg(){
+  const from = inputVal('r-from'), to = inputVal('r-to');
+  if(!from || !to){ alert('出発駅と到着駅を入力してください'); return; }
+  draftLegs.push({
+    from, to,
+    line: inputVal('r-line'),
+    dep: document.getElementById('r-dep').value,
+    arr: document.getElementById('r-arr').value,
+    note: inputVal('r-note')
+  });
+  // 次の区間の出発駅は、今の到着駅にする（乗換を続けて入力しやすくするため）
+  document.getElementById('r-from').value = to;
+  document.getElementById('r-to').value = '';
+  document.getElementById('r-line').value = '';
+  document.getElementById('r-dep').value = '';
+  document.getElementById('r-arr').value = '';
+  document.getElementById('r-note').value = '';
+  renderDraftLegs();
+}
+
+function removeDraftLeg(i){
+  draftLegs.splice(i, 1);
+  renderDraftLegs();
+}
+
+function renderDraftLegs(){
+  document.getElementById('r-legs').innerHTML = draftLegs.map((l, i) => `
+    <div class="trip-memo">${escapeHtml(fmtLeg(l))}
+      <button class="del-btn" style="position:static;" onclick="removeDraftLeg(${i})">削除</button>
+    </div>`).join('');
+}
+
+async function saveRoute(){
+  const name = inputVal('r-name');
+  const date = document.getElementById('r-date').value;
+  if(!name){ alert('ルート名を入力してください'); return; }
+  if(draftLegs.length === 0){ alert('区間を1つ以上追加してください'); return; }
+
+  if (editingRouteId) {
+    const i = routes.findIndex(r => r.id === editingRouteId);
+    if (i !== -1) routes[i] = { ...routes[i], name, date, legs: draftLegs.slice() };
+  } else {
+    routes.unshift({ id: uid(), name, date, legs: draftLegs.slice(), ts: Date.now() });
+  }
+  cancelEditRoute();
+  await saveRoutes();
+  renderRoutes();
+}
+
+function editRoute(id){
+  const r = routes.find(x => x.id === id);
+  if(!r) return;
+  editingRouteId = id;
+  document.getElementById('r-name').value = r.name || '';
+  document.getElementById('r-date').value = r.date || '';
+  draftLegs = r.legs.map(l => ({ ...l }));
+  renderDraftLegs();
+  document.getElementById('r-submit').textContent = '更新する';
+  document.getElementById('r-cancel').style.display = 'block';
+  document.getElementById('panel-trip').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cancelEditRoute(){
+  editingRouteId = null;
+  draftLegs = [];
+  ['r-name','r-date','r-from','r-to','r-line','r-dep','r-arr','r-note'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  renderDraftLegs();
+  document.getElementById('r-submit').textContent = '保存する';
+  document.getElementById('r-cancel').style.display = 'none';
+}
+
+async function deleteRoute(id){
+  if(!confirm('このルートを削除しますか？')) return;
+  routes = routes.filter(r => r.id !== id);
+  await saveRoutes();
+  renderRoutes();
+}
+
+function renderRoutes(){
+  const list = document.getElementById('r-list');
+  document.getElementById('r-count').textContent = routes.length + '件';
+  if(routes.length === 0){
+    list.innerHTML = `<div class="empty"><span class="big">ルートはまだありません</span>乗換と発着時刻を書き留めましょう</div>`;
+    return;
+  }
+  list.innerHTML = routes.map(r => `
+    <div class="ticket">
+      <div class="ticket-main">
+        <button class="del-btn" style="right:56px;" onclick="editRoute('${r.id}')">編集</button>
+        <button class="del-btn" onclick="deleteRoute('${r.id}')">削除</button>
+        <div class="ticket-line">ROUTE</div>
+        <div class="ticket-title">${escapeHtml(r.name)}</div>
+        ${r.legs.map(l => `<div class="ticket-meta">${escapeHtml(fmtLeg(l))}</div>`).join('')}
+      </div>
+      <div class="ticket-stub"><div class="date">${fmtDate(r.date)}</div></div>
     </div>
   `).join('');
 }
