@@ -32,6 +32,7 @@
     <button id="tabBtn-vehicle" class="active" onclick="switchTab('vehicle')">車両形式ログ</button>
     <button id="tabBtn-visit" onclick="switchTab('visit')">駅・バス記録</button>
     <button id="tabBtn-trip" onclick="switchTab('trip')">旅程メモ</button>
+    <button id="tabBtn-goal" onclick="switchTab('goal')">目標</button>
   </nav>
 
   <!-- 車両形式ログ -->
@@ -130,10 +131,8 @@
     <div id="s-list"></div>
   </section>
 
-  <!-- 旅程メモ -->
+  <!-- 旅程メモ（ルート） -->
   <section id="panel-trip" class="panel">
-
-    <!-- ルート（区間ごとの乗換・時刻）：旅程メモの先頭に表示 -->
     <div class="form-card">
       <h2>ルートを作る</h2>
       <div class="field-row">
@@ -161,9 +160,11 @@
     </div>
     <div class="list-title"><span>ルート一覧</span><span id="r-count">0件</span></div>
     <div id="r-list"></div>
+  </section>
 
-    <!-- 目標 -->
-    <div class="form-card" style="margin-top:24px;">
+  <!-- 目標 -->
+  <section id="panel-goal" class="panel">
+    <div class="form-card">
       <h2>次の目標を書き留める</h2>
       <div class="field-row">
         <div class="field">
