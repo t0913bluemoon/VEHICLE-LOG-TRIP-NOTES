@@ -223,12 +223,10 @@ function importBackup(event){
 }
 
 function switchTab(name){
-  document.getElementById('panel-vehicle').classList.toggle('active', name==='vehicle');
-  document.getElementById('panel-visit').classList.toggle('active', name==='visit');
-  document.getElementById('panel-trip').classList.toggle('active', name==='trip');
-  document.getElementById('tabBtn-vehicle').classList.toggle('active', name==='vehicle');
-  document.getElementById('tabBtn-visit').classList.toggle('active', name==='visit');
-  document.getElementById('tabBtn-trip').classList.toggle('active', name==='trip');
+  ['vehicle', 'visit', 'trip', 'goal'].forEach(t => {
+    document.getElementById('panel-' + t).classList.toggle('active', name === t);
+    document.getElementById('tabBtn-' + t).classList.toggle('active', name === t);
+  });
 }
 
 function fmtDate(d){
@@ -491,7 +489,7 @@ function editTrip(id){
   document.getElementById('t-memo').value = t.memo || '';
   document.getElementById('t-submit-btn').textContent = '更新する';
   document.getElementById('t-cancel-btn').style.display = 'block';
-  document.getElementById('panel-trip').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('panel-goal').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function cancelEditTrip(){
