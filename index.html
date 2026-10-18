@@ -64,7 +64,7 @@
         </div>
         <div class="field">
           <label>編成番号</label>
-          <input type="text" id="v-formation" placeholder="例：HD-2」">
+          <input type="text" id="v-formation" placeholder="例：HD-2">
         </div>
       </div>
       <div class="field-row">
@@ -160,6 +160,35 @@
 
     <div class="list-title"><span>目標一覧</span><span id="t-count">0件</span></div>
     <div id="t-list"></div>
+
+    <!-- ルート（区間ごとの乗換・時刻） -->
+    <div class="form-card" style="margin-top:24px;">
+      <h2>ルートを作る</h2>
+      <div class="field-row">
+        <div class="field"><label>ルート名</label><input type="text" id="r-name" placeholder="例：札幌→旭川 日帰り"></div>
+        <div class="field"><label>日付</label><input type="date" id="r-date"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>出発駅</label><input type="text" id="r-from"></div>
+        <div class="field"><label>到着駅</label><input type="text" id="r-to"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>路線・列車名</label><input type="text" id="r-line" placeholder="例：函館本線 普通"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>発車時刻</label><input type="time" id="r-dep"></div>
+        <div class="field"><label>到着時刻</label><input type="time" id="r-arr"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>乗換・メモ</label><input type="text" id="r-note" placeholder="例：〇〇で乗換 5分"></div>
+      </div>
+      <button class="submit-btn" onclick="addDraftLeg()">区間を追加</button>
+      <div id="r-legs" style="margin-top:10px;"></div>
+      <button class="submit-btn" id="r-submit" onclick="saveRoute()" style="margin-top:12px;">保存する</button>
+      <button class="submit-btn" id="r-cancel" onclick="cancelEditRoute()" style="display:none;background:var(--line-gray);margin-top:6px;">編集をやめる</button>
+    </div>
+    <div class="list-title"><span>ルート一覧</span><span id="r-count">0件</span></div>
+    <div id="r-list"></div>
   </section>
 
   <footer>
